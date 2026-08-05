@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dodge PRO ULTIMATE</title>
+
+<style>
+body{
+margin:0;
+background:radial-gradient(circle,#0f2027,#203a43,#2c5364);
+color:white;
+text-align:center;
+font-family:sans-serif;
+overflow:hidden;
+}
+
+h1{
+text-shadow:0 0 20px cyan;
+}
+
+#ui{
+margin:10px;
+}
+
+canvas{
+background:black;
+display:block;
+margin:auto;
+border-radius:15px;
+box-shadow:0 0 40px cyan;
+}
+
+button{
+padding:8px 15px;
+border:none;
+border-radius:8px;
+background:cyan;
+cursor:pointer;
+box-shadow:0 0 10px cyan;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🔥 Dodge PRO ULTIMATE</h1>
+
+<div id="ui">
+Score: <span id="score">0</span> |
+Coins: <span id="coins">0</span> |
+Level: <span id="level">1</span>
+<br>
+<button onclick="buySkin()">🛒 Buy Skin (10)</button>
+</div>
+
+<canvas id="game" width="400" height="500"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = {x:200,y:450,size:20,color:"cyan"};
+let obstacles = [];
+let particles = [];
+
+let score = 0;
+let coins = Number(localStorage.getItem("coins")) || 0;
+let level = 1;
+let speed = 2;
+
+document.getElementById("coins").innerText = coins;
+
+/* SOUND */
+let hitSound = new Audio("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
+
+/* SPAWN */
+function spawn(){
+obstacles.push({
+x:Math.random()*(canvas.width-20),
+y:0,
+size:20
+});
+}
+setInterval(spawn,700);
+
+/* PARTICLES */
+function createParticles(x,y){
+for(let i=0;i<12;i++){
+particles.push({
+x:x,
+y:y,
+vx:(Math.random()-0.5)*5,
+vy:(Math.random()-0.5)*5,
+life:40
+});
+}
+}
+
+/* DRAW */
+function draw(){
+ctx.fillStyle="black";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+// player (🔥 دائرة)
+ctx.beginPath();
+ctx.arc(player.x, player.y, player.size, 0, Math.PI*2);
+ctx.fillStyle = player.color;
+ctx.shadowBlur = 25;
+ctx.shadowColor = player.color;
+ctx.fill();
+
+// obstacles (🔥 دوائر)
+obstacles.forEach(o=>{
+ctx.beginPath();
+ctx.arc(o.x, o.y, o.size, 0, Math.PI*2);
+ctx.fillStyle = "red";
+ctx.shadowBlur = 15;
+ctx.shadowColor = "red";
+ctx.fill();
+});
+
+// particles
+ctx.fillStyle="yellow";
+particles.forEach(p=>{
+ctx.fillRect(p.x,p.y,3,3);
+});
+
+ctx.shadowBlur = 0;
+}
+
+/* UPDATE */
+function update(){
+
+// obstacles
+obstacles.forEach(o=>{
+o.y += speed;
+
+// collision
+let dx = player.x - o.x;
+let dy = player.y - o.y;
+let dist = Math.sqrt(dx*dx + dy*dy);
+
+if(dist < player.size + o.size){
+hitSound.play();
+createParticles(player.x,player.y);
+
+setTimeout(()=>{
+alert("💀 Game Over | Score: "+score);
+location.reload();
+},200);
+}
+});
+
+// particles
+particles.forEach(p=>{
+p.x += p.vx;
+p.y += p.vy;
+p.life--;
+});
+particles = particles.filter(p=>p.life>0);
+
+// remove obstacles
+obstacles = obstacles.filter(o=>o.y < canvas.height+50);
+
+// score
+score++;
+document.getElementById("score").innerText=score;
+
+// coins
+if(score % 50 === 0){
+coins++;
+localStorage.setItem("coins", coins);
+document.getElementById("coins").innerText=coins;
+}
+
+// levels
+if(score % 300 === 0){
+level++;
+speed += 0.7;
+document.getElementById("level").innerText=level;
+}
+}
+
+/* LIMIT (🔥 مهم) */
+function clamp(){
+if(player.x < player.size) player.x = player.size;
+if(player.x > canvas.width - player.size)
+player.x = canvas.width - player.size;
+}
+
+/* LOOP */
+function loop(){
+update();
+clamp();
+draw();
+requestAnimationFrame(loop);
+}
+loop();
+
+/* CONTROL PC */
+canvas.addEventListener("mousemove",(e)=>{
+let rect = canvas.getBoundingClientRect();
+player.x = e.clientX - rect.left;
+});
+
+/* MOBILE */
+canvas.addEventListener("touchmove",(e)=>{
+let rect = canvas.getBoundingClientRect();
+player.x = e.touches[0].clientX - rect.left;
+});
+  
+/* SHOP */
+function buySkin(){
+if(coins >= 10){
+coins -= 10;
+let colors = ["cyan","lime","yellow","magenta","orange","white"];
+player.color = colors[Math.floor(Math.random()*colors.length)];
+
+localStorage.setItem("coins", coins);
+document.getElementById("coins").innerText=coins;
+}else{
+alert("❌ Not enough coins");
+}
+}
+</script>
+
+</body>
+</html>
